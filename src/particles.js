@@ -119,6 +119,11 @@ export class ParticleSystem {
             // Rescale 0.0-0.8 to 0.0-1.0
             t = t * 1.25;
             
+            // Disable expansion if moving (Victory gesture)
+            if (data.isMoving) {
+                t = 0;
+            }
+            
             const targetExpansion = t;
             this.material.uniforms.uExpansion.value += (targetExpansion - this.material.uniforms.uExpansion.value) * 0.1;
         }
@@ -138,6 +143,18 @@ export class ParticleSystem {
              // If c is 0.7 (original closed 1.0), scale is 0.5.
              
              this.points.scale.setScalar(1.0 - c * 0.5);
+        }
+        
+        if (data.isMoving) {
+            // Map 0..1 to -20..20
+            const targetX = (data.xPos - 0.5) * 40;
+            // Smoothly move
+            this.points.position.x += (targetX - this.points.position.x) * 0.1;
+        } else {
+            // Return to center? Or stay?
+            // "跟着左右移动" implies it follows the hand. If hand stops/changes gesture, maybe it stays or returns.
+            // Let's make it return to center when not gesturing, for cleaner UX.
+            this.points.position.x += (0 - this.points.position.x) * 0.05;
         }
     }
 

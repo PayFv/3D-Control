@@ -41,6 +41,10 @@ export class UI {
                     <span>Status:</span>
                     <span id="debug-status">Waiting...</span>
                 </div>
+                <div class="debug-item">
+                    <span>Move X:</span>
+                    <span id="debug-move">0.00</span>
+                </div>
             </div>
         `;
 
@@ -51,13 +55,16 @@ export class UI {
         const tensionEl = document.getElementById('debug-tension');
         const closedEl = document.getElementById('debug-closed');
         const statusEl = document.getElementById('debug-status');
+        const moveEl = document.getElementById('debug-move');
 
         if (tensionEl) tensionEl.innerText = data.tension.toFixed(2);
         if (closedEl) closedEl.innerText = data.closed.toFixed(2);
+        if (moveEl) moveEl.innerText = data.isMoving ? data.xPos.toFixed(2) : "OFF";
         
         // Infer status
         if (statusEl) {
-            if (data.closed > 0.8) statusEl.innerText = "Closed (Shrink)";
+            if (data.isMoving) statusEl.innerText = "Moving (Victory)";
+            else if (data.closed > 0.8) statusEl.innerText = "Closed (Shrink)";
             else if (data.tension > 0.5) statusEl.innerText = "Tension (Expand)";
             else statusEl.innerText = "Neutral";
         }

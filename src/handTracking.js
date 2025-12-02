@@ -36,8 +36,9 @@ export class HandTracking {
     async setupCamera() {
         const constraints = {
             video: {
-                width: 640,
-                height: 480
+                facingMode: 'user',
+                width: { ideal: 640 },
+                height: { ideal: 480 }
             }
         };
 
@@ -123,9 +124,50 @@ export class HandTracking {
         
         const tension = Math.min(1, spread / (palmSize * 3)); // Normalize
 
+        // Detect "Two Fingers" (Victory / Peace sign)
+        // Index (8) and Middle (12) are extended. Ring (16) and Pinky (20) are curled.
+        // Thumb (4) can be anywhere.
+        
+        const isExtended = (tipIdx, pipIdx) => {
+            // Simple check: tip is higher (lower y) than pip
+            // Note: MediaPipe Y increases downwards.
+            return hand[tipIdx].y < hand[pipIdx].y;
+        };
+        
+        // More robust extended check using distance from wrist
+        const dist = (idx) => Math.sqrt(
+            Math.pow(hand[idx].x - wrist.x, 2) + 
+            Math.pow(hand[idx].y - wrist.y, 2)
+        );
+        
+        const indexExt = dist(8) > dist(6); // Tip vs PIP
+        const middleExt = dist(12) > dist(10);
+        const ringExt = dist(16) > dist(14);
+        const pinkyExt = dist(20) > dist(18);
+        
+        // Victory: Index & Middle Extended, Ring & Pinky NOT Extended
+        // Also check that index and middle are somewhat separated?
+        
+        let xPos = 0.5; // Center
+        let isMoving = false;
+        
+        if (indexExt && middleExt && !ringExt && !pinkyExt) {
+            isMoving = true;
+            // Use the average X of index and middle tip
+            xPos = (hand[8].x + hand[12].x) / 2;
+            // Mirror it? Webcam is usually mirrored.
+            // If user moves hand right (screen right), x increases.
+            // We want object to move right.
+            xPos = 1.0 - xPos; // Flip for mirrored feel if needed, or just xPos.
+            // Usually webcam is mirrored, so moving hand "right" in real world moves it "left" on screen.
+            // Let's assume standard mirror behavior.
+        }
+
         this.onUpdate({
             tension: tension,
-            closed: closed
+            closed: closed,
+            isMoving: isMoving,
+            xPos: xPos
         });
     }
 }

@@ -104,3 +104,53 @@ input[type="color"] {
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.7);
 }
+
+@media (max-width: 600px) {
+  #ui-container {
+    width: 100%;
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    padding: 10px;
+    box-sizing: border-box;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.8);
+    gap: 10px;
+  }
+
+  .panel {
+    width: 48%;
+    margin: 0;
+    padding: 10px;
+    font-size: 0.8rem;
+  }
+
+  h2 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+
+  .btn-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+  }
+
+  button {
+    padding: 5px;
+    font-size: 0.75rem;
+  }
+
+  #hand-status {
+    top: 10px;
+    left: 10px;
+    bottom: auto;
+  }
+
+  #debug-panel {
+    display: none;
+    /* Hide debug on mobile to save space */
+  }
+}
