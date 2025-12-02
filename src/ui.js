@@ -59,7 +59,7 @@ export class UI {
 
         if (tensionEl) tensionEl.innerText = data.tension.toFixed(2);
         if (closedEl) closedEl.innerText = data.closed.toFixed(2);
-        if (moveEl) moveEl.innerText = data.isMoving ? data.xPos.toFixed(2) : "OFF";
+        if (moveEl) moveEl.innerText = data.isMoving ? `${data.xPos.toFixed(2)}, ${data.yPos.toFixed(2)}` : "OFF";
         
         // Infer status
         if (statusEl) {

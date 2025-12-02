@@ -149,25 +149,27 @@ export class HandTracking {
         // Also check that index and middle are somewhat separated?
         
         let xPos = 0.5; // Center
+        let yPos = 0.5; // Center
         let isMoving = false;
         
         if (indexExt && middleExt && !ringExt && !pinkyExt) {
             isMoving = true;
             // Use the average X of index and middle tip
             xPos = (hand[8].x + hand[12].x) / 2;
-            // Mirror it? Webcam is usually mirrored.
+            yPos = (hand[8].y + hand[12].y) / 2;
+            
+            // Mirror X? Webcam is usually mirrored.
             // If user moves hand right (screen right), x increases.
             // We want object to move right.
             xPos = 1.0 - xPos; // Flip for mirrored feel if needed, or just xPos.
-            // Usually webcam is mirrored, so moving hand "right" in real world moves it "left" on screen.
-            // Let's assume standard mirror behavior.
         }
 
         this.onUpdate({
             tension: tension,
             closed: closed,
             isMoving: isMoving,
-            xPos: xPos
+            xPos: xPos,
+            yPos: yPos
         });
     }
 }

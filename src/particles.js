@@ -10,9 +10,12 @@ export class ParticleSystem {
         this.colors = new Float32Array(this.count * 3);
         this.randoms = new Float32Array(this.count); // Add randomness attribute
         
+        // Base scale factor for mobile
+        this.baseScale = window.innerWidth < 600 ? 0.5 : 1.0;
+        
         // Initialize random positions
         for (let i = 0; i < this.count * 3; i++) {
-            this.positions[i] = (Math.random() - 0.5) * 50;
+            this.positions[i] = (Math.random() - 0.5) * 50 * this.baseScale;
             this.targetPositions[i] = this.positions[i];
             this.colors[i] = 1.0; // White initially
         }
@@ -142,19 +145,31 @@ export class ParticleSystem {
              // If c is 0 (original closed 0.3), scale is 1.
              // If c is 0.7 (original closed 1.0), scale is 0.5.
              
+             // Disable shrinking if moving (Victory gesture)
+             if (data.isMoving) {
+                 c = 0;
+             }
+             
              this.points.scale.setScalar(1.0 - c * 0.5);
         }
         
         if (data.isMoving) {
-            // Map 0..1 to -20..20
+            // Map 0..1 to -20..20 for X
             const targetX = (data.xPos - 0.5) * 40;
+            // Map 0..1 to 15..-15 for Y (inverted because screen Y is down)
+            // 0 (top) -> 15 (up)
+            // 1 (bottom) -> -15 (down)
+            const targetY = -(data.yPos - 0.5) * 30; 
+            
             // Smoothly move
             this.points.position.x += (targetX - this.points.position.x) * 0.1;
+            this.points.position.y += (targetY - this.points.position.y) * 0.1;
         } else {
             // Return to center? Or stay?
             // "跟着左右移动" implies it follows the hand. If hand stops/changes gesture, maybe it stays or returns.
             // Let's make it return to center when not gesturing, for cleaner UX.
             this.points.position.x += (0 - this.points.position.x) * 0.05;
+            this.points.position.y += (0 - this.points.position.y) * 0.05;
         }
     }
 
@@ -231,15 +246,15 @@ export class ParticleSystem {
             // x: 0-200 -> -20 to 20
             // y: 0-100 -> 10 to -10 (flip y)
             
-            arr[i3] = (pixel.x / canvas.width - 0.5) * 40;
-            arr[i3+1] = -(pixel.y / canvas.height - 0.5) * 20;
-            arr[i3+2] = (Math.random() - 0.5) * 2; // Thin depth
+            arr[i3] = (pixel.x / canvas.width - 0.5) * 40 * this.baseScale;
+            arr[i3+1] = -(pixel.y / canvas.height - 0.5) * 20 * this.baseScale;
+            arr[i3+2] = (Math.random() - 0.5) * 2 * this.baseScale; // Thin depth
         }
     }
 
     generateRandom(arr) {
         for (let i = 0; i < this.count * 3; i++) {
-            arr[i] = (Math.random() - 0.5) * 50;
+            arr[i] = (Math.random() - 0.5) * 50 * this.baseScale;
         }
     }
 
@@ -264,9 +279,9 @@ export class ParticleSystem {
             const z = (Math.random() - 0.5) * 10; 
             
             // Scale down
-            arr[i3] = x * 0.5;
-            arr[i3+1] = y * 0.5;
-            arr[i3+2] = z;
+            arr[i3] = x * 0.5 * this.baseScale;
+            arr[i3+1] = y * 0.5 * this.baseScale;
+            arr[i3+2] = z * this.baseScale;
         }
     }
 
@@ -277,9 +292,9 @@ export class ParticleSystem {
             const v = Math.random() * Math.PI;
             const r = 10 * (1 + 0.5 * Math.sin(5 * u) * Math.sin(v)); // 5 petals
             
-            arr[i3] = r * Math.sin(v) * Math.cos(u);
-            arr[i3+1] = r * Math.sin(v) * Math.sin(u);
-            arr[i3+2] = r * Math.cos(v);
+            arr[i3] = r * Math.sin(v) * Math.cos(u) * this.baseScale;
+            arr[i3+1] = r * Math.sin(v) * Math.sin(u) * this.baseScale;
+            arr[i3+2] = r * Math.cos(v) * this.baseScale;
         }
     }
 
@@ -294,9 +309,9 @@ export class ParticleSystem {
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
             
-            arr[i3] = r * Math.sin(phi) * Math.cos(theta);
-            arr[i3+1] = r * Math.sin(phi) * Math.sin(theta);
-            arr[i3+2] = r * Math.cos(phi);
+            arr[i3] = r * Math.sin(phi) * Math.cos(theta) * this.baseScale;
+            arr[i3+1] = r * Math.sin(phi) * Math.sin(theta) * this.baseScale;
+            arr[i3+2] = r * Math.cos(phi) * this.baseScale;
         }
         
         // Rings
@@ -305,9 +320,9 @@ export class ParticleSystem {
             const angle = Math.random() * Math.PI * 2;
             const dist = 12 + Math.random() * 10;
             
-            arr[i3] = dist * Math.cos(angle);
-            arr[i3+1] = (Math.random() - 0.5) * 0.5; // Thin ring
-            arr[i3+2] = dist * Math.sin(angle);
+            arr[i3] = dist * Math.cos(angle) * this.baseScale;
+            arr[i3+1] = (Math.random() - 0.5) * 0.5 * this.baseScale; // Thin ring
+            arr[i3+2] = dist * Math.sin(angle) * this.baseScale;
             
             // Tilt the ring
             const x = arr[i3];
@@ -335,18 +350,18 @@ export class ParticleSystem {
                 const r = 3;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
-                arr[i3] = r * Math.sin(phi) * Math.cos(theta);
-                arr[i3+1] = r * Math.sin(phi) * Math.sin(theta) + 8; // Offset Y
-                arr[i3+2] = r * Math.cos(phi);
+                arr[i3] = r * Math.sin(phi) * Math.cos(theta) * this.baseScale;
+                arr[i3+1] = (r * Math.sin(phi) * Math.sin(theta) + 8) * this.baseScale; // Offset Y
+                arr[i3+2] = r * Math.cos(phi) * this.baseScale;
             } else if (rand < 0.6) {
                 // Body (Cylinder/Cone-ish)
                 const h = (Math.random() - 0.5) * 10; // -5 to 5
                 const r = 4 + (5 - Math.abs(h)) * 0.5; // Wider at bottom
                 const theta = Math.random() * Math.PI * 2;
                 
-                arr[i3] = r * Math.cos(theta);
-                arr[i3+1] = h; // Center
-                arr[i3+2] = r * Math.sin(theta);
+                arr[i3] = r * Math.cos(theta) * this.baseScale;
+                arr[i3+1] = h * this.baseScale; // Center
+                arr[i3+2] = r * Math.sin(theta) * this.baseScale;
             } else {
                 // Legs (Crossed - Torus segment?)
                 // Let's just do a wide base
@@ -354,9 +369,9 @@ export class ParticleSystem {
                 const theta = Math.random() * Math.PI * 2;
                 const h = -5 + (Math.random() - 0.5) * 2;
                 
-                arr[i3] = r * Math.cos(theta);
-                arr[i3+1] = h;
-                arr[i3+2] = r * Math.sin(theta);
+                arr[i3] = r * Math.cos(theta) * this.baseScale;
+                arr[i3+1] = h * this.baseScale;
+                arr[i3+2] = r * Math.sin(theta) * this.baseScale;
             }
         }
     }
@@ -372,9 +387,9 @@ export class ParticleSystem {
             // Add some trails/streaks
             const streak = Math.random();
             
-            arr[i3] = r * Math.sin(phi) * Math.cos(theta) * streak;
-            arr[i3+1] = r * Math.sin(phi) * Math.sin(theta) * streak;
-            arr[i3+2] = r * Math.cos(phi) * streak;
+            arr[i3] = r * Math.sin(phi) * Math.cos(theta) * streak * this.baseScale;
+            arr[i3+1] = r * Math.sin(phi) * Math.sin(theta) * streak * this.baseScale;
+            arr[i3+2] = r * Math.cos(phi) * streak * this.baseScale;
         }
     }
 }
