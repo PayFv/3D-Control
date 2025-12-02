@@ -87,29 +87,18 @@ export class ParticleSystem {
         this.points = new THREE.Points(this.geometry, this.material);
         this.scene.add(this.points);
 
-        this.currentShape = 'random';
-        this.setShape('heart'); // Default
+        this.currentShape = 'flower';
+        this.setShape('flower'); // Default
     }
 
     update(time) {
         this.material.uniforms.uTime.value = time;
-        
-        // Smoothly interpolate positions if we were doing CPU morphing, 
-        // but here we are doing shader morphing.
-        // We need to update the 'position' attribute to be the OLD shape 
-        // and 'target' to be the NEW shape when switching.
-        // For now, let's just assume 'position' is the canonical source and we move it.
-        
-        // Actually, a better morphing strategy for this amount of particles:
-        // Keep 'position' as the current state. Move particles towards 'target' every frame in JS.
-        // This allows for interactive physics (hand repulsion) easily.
         
         const positions = this.geometry.attributes.position.array;
         const targets = this.geometry.attributes.target.array;
         
         for (let i = 0; i < this.count; i++) {
             const i3 = i * 3;
-            
             // Lerp towards target
             positions[i3] += (targets[i3] - positions[i3]) * 0.05;
             positions[i3+1] += (targets[i3+1] - positions[i3+1]) * 0.05;
@@ -123,22 +112,32 @@ export class ParticleSystem {
         // data.tension: 0 to 1 (hand open/stretched)
         // data.closed: 0 to 1 (hand closed)
         
-        // Map tension to expansion
-        // Map closed to contraction or color intensity
-        
         if (data.tension !== undefined) {
-            // Smoothly update expansion
-            const targetExpansion = data.tension;
+            // Remap tension: ignore values below 0.2 (noise floor)
+            // 0.15 should result in 0 expansion
+            let t = Math.max(0, data.tension - 0.2);
+            // Rescale 0.0-0.8 to 0.0-1.0
+            t = t * 1.25;
+            
+            const targetExpansion = t;
             this.material.uniforms.uExpansion.value += (targetExpansion - this.material.uniforms.uExpansion.value) * 0.1;
         }
         
         if (data.closed !== undefined) {
-            // Maybe shrink size when closed?
-            const targetSize = 0.1 + (1.0 - data.closed) * 0.1; 
-             // If closed (1), size is small. If open (0), size is big? 
-             // Or vice versa. Let's make it pulse.
-             // Actually, let's use closed to scale the whole object down.
-             this.points.scale.setScalar(1.0 - data.closed * 0.5);
+             // If closed is 0.65, we want it to be somewhat small, but maybe not fully compressed.
+             // But if the user says "image not restored", maybe they mean it's stuck in a scaled state?
+             // If closed is high, scale is low.
+             // If closed is 0.65, scale is 1 - 0.325 = 0.675.
+             // If they open hand, closed goes to 0, scale goes to 1.
+             // Maybe the issue is that 0.65 is "neutral" for them? 
+             // Let's assume < 0.2 is open, > 0.8 is closed.
+             // Let's remap closed too.
+             
+             let c = Math.max(0, data.closed - 0.3); // Ignore low values
+             // If c is 0 (original closed 0.3), scale is 1.
+             // If c is 0.7 (original closed 1.0), scale is 0.5.
+             
+             this.points.scale.setScalar(1.0 - c * 0.5);
         }
     }
 
@@ -146,7 +145,7 @@ export class ParticleSystem {
         this.material.uniforms.uColor.value.set(hex);
     }
 
-    setShape(type) {
+    setShape(type, text = '') {
         this.currentShape = type;
         const targets = this.geometry.attributes.target.array;
         
@@ -166,15 +165,59 @@ export class ParticleSystem {
             case 'fireworks':
                 this.generateFireworks(targets);
                 break;
+            case 'text':
+                this.generateText(targets, text);
+                break;
             default:
                 this.generateRandom(targets);
         }
         
-        // We don't set needsUpdate here because we read from it in the loop
-        // But actually we write to it once here.
-        // Wait, the loop reads from 'target' and writes to 'position'.
-        // So we just need to update the 'target' array values.
         this.geometry.attributes.target.needsUpdate = true;
+    }
+
+    generateText(arr, text) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 200;
+        canvas.height = 100;
+        
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 60px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+        
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        const validPixels = [];
+        for (let y = 0; y < canvas.height; y++) {
+            for (let x = 0; x < canvas.width; x++) {
+                if (data[(y * canvas.width + x) * 4] > 128) {
+                    validPixels.push({x, y});
+                }
+            }
+        }
+        
+        if (validPixels.length === 0) {
+            this.generateRandom(arr);
+            return;
+        }
+        
+        for (let i = 0; i < this.count; i++) {
+            const i3 = i * 3;
+            const pixel = validPixels[Math.floor(Math.random() * validPixels.length)];
+            
+            // Map pixel to 3D space
+            // x: 0-200 -> -20 to 20
+            // y: 0-100 -> 10 to -10 (flip y)
+            
+            arr[i3] = (pixel.x / canvas.width - 0.5) * 40;
+            arr[i3+1] = -(pixel.y / canvas.height - 0.5) * 20;
+            arr[i3+2] = (Math.random() - 0.5) * 2; // Thin depth
+        }
     }
 
     generateRandom(arr) {

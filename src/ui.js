@@ -15,7 +15,10 @@ export class UI {
                     <button data-shape="saturn">Saturn</button>
                     <button data-shape="buddha">Buddha</button>
                     <button data-shape="fireworks">Fireworks</button>
-                    <button data-shape="random">Random</button>
+                </div>
+                <div class="input-group" style="margin-top: 10px; display: flex; gap: 5px;">
+                    <input type="text" id="text-input" placeholder="Enter text..." style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white;">
+                    <button id="text-btn">Go</button>
                 </div>
             </div>
             
@@ -72,6 +75,19 @@ export class UI {
                 const shape = e.target.dataset.shape;
                 this.particleSystem.setShape(shape);
             });
+        });
+
+        const textBtn = document.getElementById('text-btn');
+        const textInput = document.getElementById('text-input');
+        
+        textBtn.addEventListener('click', () => {
+            const text = textInput.value;
+            if (text) {
+                // Remove active from others
+                buttons.forEach(b => b.classList.remove('active'));
+                textBtn.classList.add('active');
+                this.particleSystem.setShape('text', text);
+            }
         });
 
         const colorPicker = document.getElementById('color-picker');
